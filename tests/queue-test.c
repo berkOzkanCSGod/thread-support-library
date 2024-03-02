@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include "tsl.h"
+#include "../tsl.h"
 
 
 int main() {
