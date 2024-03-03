@@ -1,4 +1,4 @@
-#define __USE_GNU
+#define __USE_GNU //added so that gcc uses gnu ucontext.c
 #include <ucontext.h>
 #include <stdio.h>
 #include <string.h>

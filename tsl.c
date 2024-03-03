@@ -1,4 +1,4 @@
-#define __USE_GNU
+#define __USE_GNU //added so that gcc uses gnu ucontext.c
 #include "tsl.h"
 
 
@@ -94,7 +94,7 @@ int tsl_create_thread(void (*tsf)(void *), void *targ) {
     getcontext(&current_context);
 
     new_tcb->context = current_context;
-    new_tcb->context.uc_mcontext.gregs[REG_ESP] = (unsigned long)tsf; //error: can't recognize REG_EIP from ucontext.c
+    new_tcb->context.uc_mcontext.gregs[REG_EIP] = (unsigned long)tsf; 
 
 
     //add new_tcb to queue
