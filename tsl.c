@@ -1,3 +1,4 @@
+#define __USE_GNU
 #include "tsl.h"
 
 
@@ -63,11 +64,14 @@ void printq(runqueue* queue) {
     }
 }
 
-int tsl_init(int salg) {
-    runqueue* Q;
-    TCB* main_tcb;
+int generateid() {
+    srand((unsigned int)time(NULL));
+    return (rand() % (MAX_ID - MIN_ID + 1)) + MIN_ID;
+}
 
+int tsl_init(int salg) {
     Q = (runqueue*)malloc(sizeof(runqueue));
+
     main_tcb = (TCB*)malloc(sizeof(TCB));
     main_tcb->tid = 0;
     main_tcb->state = RUNNING;
@@ -75,19 +79,46 @@ int tsl_init(int salg) {
 
 }
 
-// You will initialize your library in this function.
-// An application will call this function exactly once before creating any threads.
-// The parameter salg is used to indicate the scheduling algorithm the library
-// will use. On success, 0 will be return. On failure, -1 (TSL ERROR) will be
-// returned.
-// The tsl init() function will initialize your library. As part of this initialization,
-// a ready queue structure (runqueue structure) should be created and initialized
-// as well. It will keep a list of TCBs corresponding to the threads that are in ready
-// state. If you wish you can create and initialize other queues. It is up to you how to
-// manage the set of TCBs of the threads that can be in various states. You can keep
-// all TCBs in a single data structure or in multiple data structures.
-// You will also need to allocate a TCB for the main thread of the application
-// (process). Its state will be RUNNING initially. You will also assign a unique thread
-// identifier to the main thread. It can be 1)
+int tsl_create_thread(void (*tsf)(void *), void *targ) {
+    TCB* new_tcb;
+    ucontext_t current_context;
 
-//define tsl_init
+    //initializing new_tcb
+    new_tcb = (TCB*)malloc(sizeof(TCB));
+    new_tcb->state = READY;
+    new_tcb->tid = generateid();
+    new_tcb->stack = (char *)malloc(TSL_STACKSIZE);
+    
+
+    //get current thread's context
+    getcontext(&current_context);
+
+    new_tcb->context = current_context;
+    new_tcb->context.uc_mcontext.gregs[REG_ESP] = (unsigned long)tsf; //error: can't recognize REG_EIP from ucontext.c
+
+
+    //add new_tcb to queue
+    if (Q != NULL) {
+        enqueue(Q, new_tcb);
+    } else {
+        printf("Error: queue not initialized, likely because tsl_init was not called.\n");
+        exit(1);
+    }
+
+
+}
+
+// initialize new TCB for new thread +
+// 	in ready state +
+// 	unique tid +
+// 	TCB will be added to ready queue +
+// allocate mem for TCB stack +
+// 	size is: TSL_STACKSIZE +
+// *TSL_MAXTHREADS -> max number of threads +
+// -----
+// setting up context
+// 	TCB->context = getcontext(current)+
+// 	EIP point to stub functionz error
+// 	initialize stack_t of ucontext_t
+// 	ESP point to top of stack
+// 	...
