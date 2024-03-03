@@ -95,7 +95,9 @@ int tsl_create_thread(void (*tsf)(void *), void *targ) {
 
     new_tcb->context = current_context;
     new_tcb->context.uc_mcontext.gregs[REG_EIP] = (unsigned long)tsf; 
-
+    new_tcb->context.uc_stack.ss_sp = malloc(TSL_STACKSIZE);
+    new_tcb->context.uc_stack.ss_size = TSL_STACKSIZE;
+    new_tcb->context.uc_stack.ss_flags = 0;
 
     //add new_tcb to queue
     if (Q != NULL) {
@@ -118,7 +120,7 @@ int tsl_create_thread(void (*tsf)(void *), void *targ) {
 // -----
 // setting up context
 // 	TCB->context = getcontext(current)+
-// 	EIP point to stub functionz error
-// 	initialize stack_t of ucontext_t
+// 	EIP point to stub functionz error +
+// 	initialize stack_t of ucontext_t +
 // 	ESP point to top of stack
 // 	...
