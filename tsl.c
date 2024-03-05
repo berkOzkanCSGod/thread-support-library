@@ -117,13 +117,17 @@ int tsl_create_thread(void (*tsf)(void *), void *targ) {
     //pushing tsl and targs onto context stack
     stack_top -= sizeof(void (*) (void *));
     *(void (**) (void *)) stack_top = tsf;
+    printf("tsf: %p\n", tsf);
     stack_top -= sizeof(void *);
     *(void **) stack_top = targ;
+    printf("targ: %p\n", targ);
     new_tcb->context.uc_mcontext.gregs[REG_ESP] = (unsigned long)stack_top; 
 
     //add new_tcb to queue
     if (Q != NULL) {
         enqueue(Q, new_tcb);
+        printf("new_tcb added to queue\n");
+        printf("stack top: %p\n", stack_top);
     } else {
         printf("Error: queue not initialized, likely because tsl_init was not called.\n");
         exit(1);
