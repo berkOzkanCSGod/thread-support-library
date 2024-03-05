@@ -81,6 +81,15 @@ int tsl_init(int salg) {
 
 }
 
+void print_stack_memory(const stack_t *stack) {
+    printf("Stack Memory:\n");
+    unsigned char *ptr = (unsigned char *)stack->ss_sp;
+    for (size_t i = 0; i < stack->ss_size; i++) {
+        printf("%p: %02x\n", (void *)ptr, *ptr);
+        ptr++;
+    }
+}
+
 int tsl_create_thread(void (*tsf)(void *), void *targ) {
     
     TCB* new_tcb;
@@ -101,15 +110,22 @@ int tsl_create_thread(void (*tsf)(void *), void *targ) {
     new_tcb->context.uc_stack.ss_sp = malloc(TSL_STACKSIZE);
     new_tcb->context.uc_stack.ss_size = TSL_STACKSIZE;
     new_tcb->context.uc_stack.ss_flags = 0;
-    //*****************************************************************************************************//
-    /* Since the stack grows downward, did we assign stack_top correctly? Should there be a subtraction
-       some where? */ 
-    //*****************************************************************************************************//
+
     char* stack_top = (char*) new_tcb->context.uc_stack.ss_sp + new_tcb->context.uc_stack.ss_size;
     new_tcb->context.uc_mcontext.gregs[REG_ESP] = (unsigned long)stack_top; 
 
     //pushing tsl and targs onto context stack
-    
+    stack_top -= sizeof(void (*) (void *));
+    *(void (**) (void *)) stack_top = tsf;
+    stack_top -= sizeof(void *);
+    *(void **) stack_top = targ;
+    new_tcb->context.uc_mcontext.gregs[REG_ESP] = (unsigned long)stack_top; 
+
+
+
+    // *(int *)stack_top = a;
+    // *(double *)(stack_top - sizeof(a)) = b;
+
 
     //add new_tcb to queue
     if (Q != NULL) {
