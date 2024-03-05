@@ -1,4 +1,9 @@
 #define __USE_GNU //added so that gcc uses gnu ucontext.c
+
+
+#ifndef TSL_H
+#define TSL_H
+
 #include <ucontext.h>
 #include <stdio.h>
 #include <string.h>
@@ -14,8 +19,6 @@
 #define TSL_STACKSIZE 1024 * 64 //64kb
 #define TSL_MAXTHREADS 100
 
-#ifndef TSL_H
-#define TSL_H
 
 typedef struct TCB TCB;
 typedef struct runqueue runqueue;

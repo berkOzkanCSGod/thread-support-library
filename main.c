@@ -1,39 +1,68 @@
 #include "tsl.h"
-#include <time.h>
+#include <stdio.h>
+#include <signal.h>
+#include <stdlib.h> // for malloc
+
+void print_stack_memory(const stack_t *stack) {
+    printf("Stack Memory:\n");
+    unsigned char *ptr = (unsigned char *)stack->ss_sp;
+    for (size_t i = 0; i < stack->ss_size; i++) {
+        printf("%p: %02x\n", (void *)ptr, *ptr);
+        ptr--;
+    }
+}
+
 
 int main() {
+    // Example ucontext_t structure
+    ucontext_t context;
+    getcontext(&context);
+    stack_t stack;
+
+    // Allocate memory for the stack (replace this with actual stack allocation)
+    size_t stack_size = 16;
+    stack.ss_sp = malloc(stack_size);
+    if (stack.ss_sp == NULL) {
+        fprintf(stderr, "Failed to allocate stack memory\n");
+        return 1;
+    }
+    stack.ss_size = stack_size;
+    stack.ss_flags = 0;
+    void* stack_top = stack.ss_sp + stack.ss_size;
+    context.uc_mcontext.gregs[REG_ESP] = (unsigned long)stack_top; 
+    context.uc_stack = stack;
+
+    printf("stack_top: %p\n", stack_top);
+
+    // print_stack_memory(&context.uc_stack);
+
+    int a = 420;
+    double b = 6.9;
+
+    printf("sizeof(a): %d, sizeof(b): %d\n", sizeof(a), sizeof(b));
     
-    clock_t init_time, final_time;
-    double total_time;
+    printf("before a stack_top: %p\n", stack_top);
+    printf("*(int*) stack_top: %d\n", *(int*) stack_top);
+    stack_top -= sizeof(a);
+    *(int*) stack_top = a;
+    printf("after a stack_top: %p\n", stack_top);
+    printf("*(int*) stack_top: %d\n", *(int*) stack_top);
 
-    long int list[89];
-    int test[89];
-    init_time = clock();
+    // stack_top -= sizeof(b);
+    // printf("after b stack_top: %p\n", stack_top);
+    // printf("*(int*) stack_top: %d\n", *(int*) stack_top);
 
-    for (int i = 0; i < 89; i++){
-        list[i] = generateid();
-        printf("%d\n", list[i]);
-    }
 
-    for (int i = 0; i < 89; i++){
-        for (int j = 0; j < 89; j++){
-            if (i != j && list[i] == list[j]) {
-                printf("found duplicate %d-%d\n", list[i], list[j]);
-            }
-        }
-    }
+    // *(int *)stack_top = a;
+    // *(double *)(stack_top - sizeof(a)) = b;
 
-    final_time = clock();
+    context.uc_mcontext.gregs[REG_ESP] = (unsigned long)stack_top; 
 
-    total_time = ((double) final_time - init_time) / CLOCKS_PER_SEC;
-    printf("Time: %f\n", total_time);
+    // printf("Going to print now...\n");
+    // print_stack_memory(&context.uc_stack);
 
-    // time_t t;
-    // clock_t t2;
-    // time(&t);
-    // t2 = clock() + generateid();
-    // printf("%d\n", t);
-    // printf("%d\n", t2);
+
+    free(stack.ss_sp);
 
     return 0;
 }

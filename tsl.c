@@ -82,6 +82,7 @@ int tsl_init(int salg) {
 }
 
 int tsl_create_thread(void (*tsf)(void *), void *targ) {
+    
     TCB* new_tcb;
     ucontext_t current_context;
 
@@ -100,13 +101,15 @@ int tsl_create_thread(void (*tsf)(void *), void *targ) {
     new_tcb->context.uc_stack.ss_sp = malloc(TSL_STACKSIZE);
     new_tcb->context.uc_stack.ss_size = TSL_STACKSIZE;
     new_tcb->context.uc_stack.ss_flags = 0;
-
-    char* stack_top = (char*) new_tcb->context.uc_stack.ss_sp + new_tcb->context.uc_stack.ss_size;
-    new_tcb->context.uc_mcontext.gregs[REG_ESP] = (unsigned long)stack_top; 
     //*****************************************************************************************************//
     /* Since the stack grows downward, did we assign stack_top correctly? Should there be a subtraction
        some where? */ 
     //*****************************************************************************************************//
+    char* stack_top = (char*) new_tcb->context.uc_stack.ss_sp + new_tcb->context.uc_stack.ss_size;
+    new_tcb->context.uc_mcontext.gregs[REG_ESP] = (unsigned long)stack_top; 
+
+    //pushing tsl and targs onto context stack
+    
 
     //add new_tcb to queue
     if (Q != NULL) {
@@ -133,6 +136,7 @@ int tsl_create_thread(void (*tsf)(void *), void *targ) {
     // 	ESP point to top of stack ?
     // 	...
 
+    // push tsl and targ into the stack 
 
 }
 
