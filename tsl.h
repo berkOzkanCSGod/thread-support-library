@@ -9,17 +9,22 @@
 #define MAX_THREADS 100
 #define RUNNING 1
 #define READY 0
-#define MIN_ID 1000
-#define MAX_ID 9999
+#define MIN_ID 10
+#define MAX_ID 99
 #define TSL_STACKSIZE 1024 * 64 //64kb
 #define TSL_MAXTHREADS 100
+
+#ifndef TSL_H
+#define TSL_H
 
 typedef struct TCB TCB;
 typedef struct runqueue runqueue;
 
 //globals
-struct runqueue* Q;
-struct TCB* main_tcb;
+extern struct runqueue* Q;
+extern struct TCB* main_tcb;
+// struct runqueue* Q;
+// struct TCB* main_tcb;
 
 
 //init tsl_init
@@ -54,3 +59,6 @@ int enqueue(runqueue* queue, TCB* tcb);
 int dequeue(runqueue* queue);
 
 void printq(runqueue* queue);
+
+
+#endif

@@ -1,6 +1,8 @@
 #define __USE_GNU //added so that gcc uses gnu ucontext.c
 #include "tsl.h"
 
+struct runqueue* Q;
+struct TCB* main_tcb;
 
 //-1: error
 //0: success
@@ -66,7 +68,7 @@ void printq(runqueue* queue) {
 
 int generateid() {
     srand((unsigned int)time(NULL));
-    return (rand() % (MAX_ID - MIN_ID + 1)) + MIN_ID;
+    return (long int) (clock() + (rand() % (MAX_ID - MIN_ID + 1)) + MIN_ID);
 }
 
 int tsl_init(int salg) {
@@ -99,6 +101,13 @@ int tsl_create_thread(void (*tsf)(void *), void *targ) {
     new_tcb->context.uc_stack.ss_size = TSL_STACKSIZE;
     new_tcb->context.uc_stack.ss_flags = 0;
 
+    char* stack_top = (char*) new_tcb->context.uc_stack.ss_sp + new_tcb->context.uc_stack.ss_size;
+    new_tcb->context.uc_mcontext.gregs[REG_ESP] = (unsigned long)stack_top; 
+    //*****************************************************************************************************//
+    /* Since the stack grows downward, did we assign stack_top correctly? Should there be a subtraction
+       some where? */ 
+    //*****************************************************************************************************//
+
     //add new_tcb to queue
     if (Q != NULL) {
         enqueue(Q, new_tcb);
@@ -107,20 +116,23 @@ int tsl_create_thread(void (*tsf)(void *), void *targ) {
         exit(1);
     }
 
+    //+ indicates done
+    //? indicates not sure
+    // initialize new TCB for new thread +
+    // 	in ready state +
+    // 	unique tid +
+    // 	TCB will be added to ready queue +
+    // allocate mem for TCB stack +
+    // 	size is: TSL_STACKSIZE +
+    // *TSL_MAXTHREADS -> max number of threads +
+    // -----
+    // setting up context
+    // 	TCB->context = getcontext(current)+
+    // 	EIP point to stub functionz error +
+    // 	initialize stack_t of ucontext_t +
+    // 	ESP point to top of stack ?
+    // 	...
+
 
 }
 
-// initialize new TCB for new thread +
-// 	in ready state +
-// 	unique tid +
-// 	TCB will be added to ready queue +
-// allocate mem for TCB stack +
-// 	size is: TSL_STACKSIZE +
-// *TSL_MAXTHREADS -> max number of threads +
-// -----
-// setting up context
-// 	TCB->context = getcontext(current)+
-// 	EIP point to stub functionz error +
-// 	initialize stack_t of ucontext_t +
-// 	ESP point to top of stack
-// 	...
