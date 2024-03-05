@@ -121,12 +121,6 @@ int tsl_create_thread(void (*tsf)(void *), void *targ) {
     *(void **) stack_top = targ;
     new_tcb->context.uc_mcontext.gregs[REG_ESP] = (unsigned long)stack_top; 
 
-
-
-    // *(int *)stack_top = a;
-    // *(double *)(stack_top - sizeof(a)) = b;
-
-
     //add new_tcb to queue
     if (Q != NULL) {
         enqueue(Q, new_tcb);
@@ -152,7 +146,7 @@ int tsl_create_thread(void (*tsf)(void *), void *targ) {
     // 	ESP point to top of stack ?
     // 	...
 
-    // push tsl and targ into the stack 
+    // push tsl and targ into the stack+
 
 }
 
