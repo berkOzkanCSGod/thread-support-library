@@ -44,6 +44,9 @@ int tsl_init(int salg) {
     main_tcb = (TCB*)malloc(sizeof(TCB));
     main_tcb->tid = TID_MAIN;
     main_tcb->state = RUNNING;
+    if (enqueue(Q, main_tcb) == -1){
+        printf(ANSI_COLOR_RED "ERROR: could not enqueue. [int tsl_init(int salg)]\n" ANSI_COLOR_RESET);
+    }    
 
     call_count = 1;
 
@@ -101,7 +104,7 @@ int tsl_create_thread(void (*tsf)(void *), void *targ) {
 
     //add new_tcb to queue
     if (Q != NULL) {
-        if (!enqueue(Q, new_tcb) == -1){
+        if (enqueue(Q, new_tcb) == -1){ //CHANGED THIS LINE!! REMOVED "!" in the start of the condition
             printf(ANSI_COLOR_RED "ERROR: could not enqueue. [int tsl_create_thread(void (*tsf)(void *), void *targ)]\n" ANSI_COLOR_RESET);
         }
     } else {
