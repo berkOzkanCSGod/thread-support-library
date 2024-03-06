@@ -374,10 +374,28 @@ int generateid() {
 
 //return TCB* by finding by id
 TCB* find_thread_by_id(int tid) {
+    int index = 0;
+    TCB* current = Q->head;
+    while(index < Q->size){
+        if(current->tid == tid){
+            return current;
+        }
+        index++;
+        current = Q->threads[index];
+    }
     return NULL;
 }
 
 //return TCB* by finding thread->state == RUNNING
 TCB* find_running_thread() {
+    int index = 0;
+    TCB* current = Q->head;
+    while(index < Q->size){
+        if(current->state == RUNNING){
+            return current;
+        }
+        index++;
+        current = Q->threads[index];
+    }
     return NULL;
 }
