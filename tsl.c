@@ -237,7 +237,6 @@ int tsl_join(int tid) {
 
     //wait until target (tid) is terminated (state == ENDED)
     TCB* taget_thread = find_thread_by_id(tid);
-
     while(taget_thread->state != ENDED);
 
     // free context stack
@@ -247,5 +246,32 @@ int tsl_join(int tid) {
     // free TCB
     free(taget_thread);
 
-    return (0);
+    //maybe need to remove from queue
+    taget_thread = NULL;
+    
+    //else return -1
+    return tid;
+}
+
+int tsl_cancel(int tid) {
+    //imediately perform tsl_exit and tsl_join
+
+    TCB* taget_thread = find_thread_by_id(tid);
+
+    // free context stack
+    free(taget_thread->context.uc_stack.ss_sp);
+    // free TCB stack
+    free(taget_thread->stack);
+    // free TCB
+    free(taget_thread);
+
+    //maybe need to remove from queue
+    taget_thread = NULL;
+
+    return tid;
+
+}
+
+int tsl_gettid() {
+    return find_running_thread();
 }
