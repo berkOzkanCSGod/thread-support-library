@@ -27,13 +27,18 @@ int enqueue(runqueue* queue, TCB* tcb) {
 //-1: error
 //0: success
 int dequeue(runqueue* queue) {
+    TCB* returned_tcb;
+
     if (queue->size == 0) {
         printf("size is 0 so no dequeue, but success.\n");
         return 0;
     } else if (queue->size < 0) {
         printf("size < 0, error.\n");
-        return -1;
+        return NULL;
     } else {
+
+        returned_tcb = queue->threads[0];
+
         for (int i = 0; i < queue->tail; i++) {
             if (i != MAX_THREADS) {
                 queue->threads[i] = queue->threads[i+1];
@@ -49,7 +54,7 @@ int dequeue(runqueue* queue) {
             queue->tail--;
         }
 
-        return 0; 
+        return returned_tcb; 
     }
 }
 
@@ -130,7 +135,6 @@ int tsl_create_thread(void (*tsf)(void *), void *targ) {
     }
 
     //+ indicates done
-    //? indicates not sure
     // initialize new TCB for new thread +
     // 	in ready state +
     // 	unique tid +
@@ -143,10 +147,105 @@ int tsl_create_thread(void (*tsf)(void *), void *targ) {
     // 	TCB->context = getcontext(current)+
     // 	EIP point to stub functionz error +
     // 	initialize stack_t of ucontext_t +
-    // 	ESP point to top of stack ?
+    // 	ESP point to top of stack +
     // 	...
 
     // push tsl and targ into the stack+
 
 }
 
+int tsl_yield(int tid) {
+    // need to add error checking later //
+
+    // A thread will call tsl yield() to give the cpu to some other thread.
+
+    TCB* current_tcb;
+    TCB* next_thread;
+
+    // caller state: RUNNING --> READY
+        // need to get TCB with state RUNNING
+        // for now just represent it as a dequeue
+    current_tcb = dequeue(Q);
+
+    current_tcb->state = READY;
+
+    //adding current thread back into queue
+    enqueue(Q, current_tcb);
+
+    //save current context
+    getcontext(&current_tcb->context);
+
+    //selecting next thread to run
+    if (tid > 0) {
+        /**
+         * If the tid paramater of the tsl yield() function is positive, 
+         * then the respective thread (if exists) will be selected to run next.
+        */
+        next_thread = find_thread(tid);
+    } else if ( tid == TSL_ANY) {
+        // this should change based on the algo.
+        next_thread = dequeue(Q);
+    }
+
+    // putting next thread onto CPU
+    setcontext(&next_thread->context);
+    next_thread->state = RUNNING;
+
+/**
+ * caller state: RUNNING --> READY +
+ * caller TCB: added to Q +
+ * current context saved w/ getcontext() +
+ * 
+ * if tid > 0 +
+ *  run this thread 
+ * else if tid == TSL_ANY +
+ *  run from schedule 
+ * 
+ * running thread: setcontext() +
+ * 
+ * 
+* /
+
+
+/*
+* Handling getcontext() Return:
+* - When a thread X calls getcontext(), it saves X's context and returns control.
+*   - This is the first return; X continues until it yields to another thread Y.
+* - When another thread (Y or Z) yields back to X using setcontext(), X resumes execution.
+*   - This is the second return.
+*/
+
+/*
+* Actions to Take in Each Case:
+* - First Return:
+*   - Change X's state to READY and perform a context switch to another thread using setcontext().
+* - Second Return:
+*   - Change X's state to RUNNING if needed.
+*/
+
+}
+
+int tsl_exit() {
+    // A thread will calltsl exit()to get terminated. 
+    TCB* current_thread = find_running_thread();
+    current_thread->state = ENDED;
+}
+
+int tsl_join(int tid) {
+
+    // add error checking later
+
+    //wait until target (tid) is terminated (state == ENDED)
+    TCB* taget_thread = find_thread_by_id(tid);
+
+    while(taget_thread->state != ENDED);
+
+    // free context stack
+    free(taget_thread->context.uc_stack.ss_sp);
+    // free TCB stack
+    free(taget_thread->stack);
+    // free TCB
+    free(taget_thread);
+
+    return (0);
+}

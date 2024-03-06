@@ -14,11 +14,12 @@
 #define MAX_THREADS 100
 #define RUNNING 1
 #define READY 0
+#define ENDED -1
 #define MIN_ID 10
 #define MAX_ID 99
 #define TSL_STACKSIZE 1024 * 64 //64kb
 #define TSL_MAXTHREADS 100
-
+#define TSL_ANY 0
 
 typedef struct TCB TCB;
 typedef struct runqueue runqueue;
@@ -35,6 +36,15 @@ int tsl_init(int salg);
 
 int tsl_create_thread(void (*tsf)(void *), void *targ);
 
+int tsl_yield(int tid);
+
+int tsl_exit();
+
+int tsl_join(int tid);
+
+int tsl_cancel(int tid);
+
+int tsl_gettid();
 
 typedef struct TCB {
     int tid; //thread id
@@ -63,5 +73,9 @@ int dequeue(runqueue* queue);
 
 void printq(runqueue* queue);
 
+//return TCB* by finding by id
+TCB* find_thread_by_id(int tid);
 
+//return TCB* by finding thread->state == RUNNING
+TCB* find_running_thread();
 #endif
