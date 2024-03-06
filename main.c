@@ -18,8 +18,11 @@ void donothing() {
 
 int main() {
 
-    tsl_init(NULL);
+    tsl_init(1);
     tsl_create_thread(&donothing, NULL);
+
+    int tid = 69420;
+    // printf(ANSI_COLOR_YELLOW "WARNING: Could not find thread with id: %d to exit. [int tsl_join(int tid)]\n" ANSI_COLOR_RESET, tid);
 
     return 0;
 }

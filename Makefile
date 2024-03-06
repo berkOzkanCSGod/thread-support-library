@@ -5,6 +5,6 @@ main.o: main.c
 	gcc -m32 -D_GNU_SOURCE -c -nostartfiles main.c -o main.o
 
 main: tsl.o main.o
-	gcc -m32 tsl.o main.o -o main
+	gcc -m32 tsl.o main.o -o main.exe
 	rm tsl.o main.o
-	# clear
+	clear
