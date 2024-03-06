@@ -18,6 +18,7 @@ void donothing() {
 
 int main() {
 
+    tsl_init(NULL);
     tsl_create_thread(&donothing, NULL);
 
     return 0;
