@@ -1,98 +1,37 @@
-#define __USE_GNU //added so that gcc uses gnu ucontext.c
+#ifndef __USE_GNU //added so that gcc uses gnu ucontext.c
+#define __USE_GNU
+#endif /* __USE_GNU */ 
+
 #include "tsl.h"
 
+typedef struct TCB {
+    int tid; //thread id
+    unsigned int state; // state of thread
+    ucontext_t context; //pointer to context
+    char* stack; //pointer to stack
+} TCB;
+
+typedef struct runqueue {
+    TCB* threads[MAX_THREADS];
+    int head; //index
+    int tail; //index
+    int size;
+} runqueue;
+
+//globals
 struct runqueue* Q;
 struct TCB* main_tcb;
 
-//-1: error
-//0: success
-int enqueue(runqueue* queue, TCB* tcb) {
-    if (queue->size >= MAX_THREADS) {
-        return -1;
-    } else {
-        if (queue->size == 0) {
-            queue->threads[0] = tcb;
-            queue->tail = 1;
-        } else {
-            queue->threads[queue->tail] = tcb;
-            queue->tail++;
-        }
-
-        queue->size++;
-
-        return 0;
-    }
-}
-
-//-1: error
-//0: success
-int dequeue(runqueue* queue) {
-    TCB* returned_tcb;
-
-    if (queue->size == 0) {
-        printf("size is 0 so no dequeue, but success.\n");
-        return 0;
-    } else if (queue->size < 0) {
-        printf("size < 0, error.\n");
-        return NULL;
-    } else {
-
-        returned_tcb = queue->threads[0];
-
-        for (int i = 0; i < queue->tail; i++) {
-            if (i != MAX_THREADS) {
-                queue->threads[i] = queue->threads[i+1];
-            }
-        }
-        
-        if (queue->size > 0) {
-            queue->size--;
-        }
-
-        queue->threads[queue->tail] = NULL;
-        if (queue->tail > 0) {
-            queue->tail--;
-        }
-
-        return returned_tcb; 
-    }
-}
-
-void printq(runqueue* queue) {
-    if (queue->size > 0) {
-        for (int i = 0; i < queue->tail-1; i++) {
-            if (i != queue->tail && queue->threads[i] != NULL) {
-                printf("%d_", queue->threads[i]->tid);
-            }
-        }
-        printf("%d\n", queue->threads[queue->tail-1]->tid);
-    } else {
-        printf("queue is empty\n");
-    }
-}
-
-int generateid() {
-    srand((unsigned int)time(NULL));
-    return (long int) (clock() + (rand() % (MAX_ID - MIN_ID + 1)) + MIN_ID);
-}
+void print_stack_memory(const stack_t *stack);
 
 int tsl_init(int salg) {
     Q = (runqueue*)malloc(sizeof(runqueue));
 
     main_tcb = (TCB*)malloc(sizeof(TCB));
-    main_tcb->tid = 0;
+    main_tcb->tid = TID_MAIN;
     main_tcb->state = RUNNING;
 
 
-}
-
-void print_stack_memory(const stack_t *stack) {
-    printf("Stack Memory:\n");
-    unsigned char *ptr = (unsigned char *)stack->ss_sp;
-    for (size_t i = 0; i < stack->ss_size; i++) {
-        printf("%p: %02x\n", (void *)ptr, *ptr);
-        ptr++;
-    }
 }
 
 int tsl_create_thread(void (*tsf)(void *), void *targ) {
@@ -185,7 +124,7 @@ int tsl_yield(int tid) {
          * If the tid paramater of the tsl yield() function is positive, 
          * then the respective thread (if exists) will be selected to run next.
         */
-        next_thread = find_thread(tid);
+        next_thread = find_thread_by_id(tid);
     } else if ( tid == TSL_ANY) {
         // this should change based on the algo.
         next_thread = dequeue(Q);
@@ -278,4 +217,96 @@ int tsl_cancel(int tid) {
 
 int tsl_gettid() {
     return find_running_thread();
+}
+
+
+void print_stack_memory(const stack_t *stack) {
+    printf("Stack Memory:\n");
+    unsigned char *ptr = (unsigned char *)stack->ss_sp;
+    for (size_t i = 0; i < stack->ss_size; i++) {
+        printf("%p: %02x\n", (void *)ptr, *ptr);
+        ptr++;
+    }
+}
+
+//-1: error
+//0: success
+int enqueue(runqueue* queue, TCB* tcb) {
+    if (queue->size >= MAX_THREADS) {
+        return -1;
+    } else {
+        if (queue->size == 0) {
+            queue->threads[0] = tcb;
+            queue->tail = 1;
+        } else {
+            queue->threads[queue->tail] = tcb;
+            queue->tail++;
+        }
+
+        queue->size++;
+
+        return 0;
+    }
+}
+
+//-1: error
+//0: success
+TCB* dequeue(runqueue* queue) {
+    TCB* returned_tcb;
+
+    if (queue->size == 0) {
+        printf("size is 0 so no dequeue, but success.\n");
+        return 0;
+    } else if (queue->size < 0) {
+        printf("size < 0, error.\n");
+        return NULL;
+    } else {
+
+        returned_tcb = queue->threads[0];
+
+        for (int i = 0; i < queue->tail; i++) {
+            if (i != MAX_THREADS) {
+                queue->threads[i] = queue->threads[i+1];
+            }
+        }
+        
+        if (queue->size > 0) {
+            queue->size--;
+        }
+
+        queue->threads[queue->tail] = NULL;
+        if (queue->tail > 0) {
+            queue->tail--;
+        }
+
+        return returned_tcb; 
+    }
+}
+
+void printq(runqueue* queue) {
+    if (queue->size > 0) {
+        for (int i = 0; i < queue->tail-1; i++) {
+            if (i != queue->tail && queue->threads[i] != NULL) {
+                printf("%d_", queue->threads[i]->tid);
+            }
+        }
+        printf("%d\n", queue->threads[queue->tail-1]->tid);
+    } else {
+        printf("queue is empty\n");
+    }
+}
+
+int generateid() {
+    srand((unsigned int)time(NULL));
+    return (long int) (clock() + (rand() % (MAX_ID - MIN_ID + 1)) + MIN_ID);
+}
+
+//return TCB* by finding by id
+TCB* find_thread_by_id(int tid) {
+    return NULL;
+}
+
+//return TCB* by finding thread->state == RUNNING
+TCB* find_running_thread() {
+    return NULL;
 }

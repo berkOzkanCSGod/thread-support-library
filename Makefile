@@ -7,4 +7,4 @@ main.o: main.c
 main: tsl.o main.o
 	gcc -m32 tsl.o main.o -o main
 	rm tsl.o main.o
-	clear
+	# clear
