@@ -23,6 +23,8 @@
 #define ANSI_COLOR_RESET    "\x1b[0m"
 #define ANSI_COLOR_YELLOW   "\x1b[33m"
 
+#define DEBUG_MODE 1
+
 typedef struct TCB TCB;
 typedef struct runqueue runqueue;
 
@@ -56,6 +58,9 @@ void stub (void (*tsf) (void*), void *targ);
 
 TCB* select_next_thread();
 
+void print_ucontext(ucontext_t *context);
+
+void print_tcb(TCB* tcb);
 
 typedef struct TCB {
     int tid; //thread id
@@ -73,7 +78,7 @@ typedef struct runqueue {
 
 int tsl_init(int salg) {
 
-    printf("Initializing tsl...\n");
+    DEBUG_MODE ? printf("Initializing tsl...\n") : 0;
 
     static int call_count = 0;
 
@@ -95,17 +100,19 @@ int tsl_init(int salg) {
         printf(ANSI_COLOR_RED "ERROR: could not enqueue. [int tsl_init(int salg)]\n" ANSI_COLOR_RESET);
     }    
 
+    DEBUG_MODE ? printq(Q) : 0;
+
     call_count = 1;
 
     scheduling_algo = salg;
 
-    printf("Successfully initialized tsl\n");
+    DEBUG_MODE ? printf("Successfully initialized tsl\n\n") : 0;
 
     return TSL_SUCCESS;
 }
 
 void tsl_quit(void) {
-    printf("Terminating tsl...\n");
+    DEBUG_MODE ? printf("Terminating tsl...\n") : 0;
     while (Q->size > 0) {
         tsl_cancel(dequeue(Q)->tid);
     }
@@ -113,7 +120,7 @@ void tsl_quit(void) {
     Q = NULL;
     tsl_cancel(TID_MAIN);
     main_tcb = NULL;
-    printf("Terminated tsl\n");
+    DEBUG_MODE ? printf("Terminated tsl\n") : 0;
     exit(0);
 }
 
@@ -124,23 +131,34 @@ int tsl_create_thread(void (*tsf)(void *), void *targ) {
 
     //initializing new_tcb
     new_tcb = (TCB*)malloc(sizeof(TCB));
-    new_tcb->state = READY;
-    new_tcb->tid = generateid();
-    new_tcb->stack = (char *)malloc(TSL_STACKSIZE);
-    
     if (new_tcb == NULL) {
         printf( ANSI_COLOR_RED "ERROR: new thread control block could not be initialized. Reason: unknown. [int tsl_create_thread(void (*tsf)(void *), void *targ)]\n" ANSI_COLOR_RESET);
         return TSL_ERROR;
     }
+    new_tcb->state = READY;
+    new_tcb->tid = generateid();
+    new_tcb->stack = (char *)malloc(TSL_STACKSIZE);
+
+    if (new_tcb->stack == NULL) {
+        printf( ANSI_COLOR_RED "ERROR: new_tcb->stack could not be initialized. Reason: unknown. [int tsl_create_thread(void (*tsf)(void *), void *targ)]\n" ANSI_COLOR_RESET);
+        return TSL_ERROR;
+    }
+
+    DEBUG_MODE ? printf("in create thread, initialization worked successfully.\n") : 0;
 
     //get current thread's context
     getcontext(&current_context);
+
+    DEBUG_MODE ? print_ucontext(&current_context) : 0;
 
     new_tcb->context = current_context;
     new_tcb->context.uc_mcontext.gregs[REG_EIP] = (unsigned long)tsf; 
     new_tcb->context.uc_stack.ss_sp = malloc(TSL_STACKSIZE);
     new_tcb->context.uc_stack.ss_size = TSL_STACKSIZE;
     new_tcb->context.uc_stack.ss_flags = 0;
+
+    DEBUG_MODE ? print_ucontext(&current_context) : 0;
+    DEBUG_MODE ? print_ucontext(&new_tcb->context) : 0;
 
     char* stack_top = (char*) new_tcb->context.uc_stack.ss_sp + new_tcb->context.uc_stack.ss_size;
     new_tcb->context.uc_mcontext.gregs[REG_ESP] = (unsigned long)stack_top; 
@@ -162,7 +180,10 @@ int tsl_create_thread(void (*tsf)(void *), void *targ) {
         return TSL_ERROR;
     }
 
-    return TSL_SUCCESS;
+    DEBUG_MODE ? printf("End of create thread\n") : 0;
+    DEBUG_MODE ? printq(Q) : 0;
+
+    return new_tcb->tid;
 
     /*
         + indicates done
@@ -277,6 +298,9 @@ int tsl_exit() {
         return TSL_ERROR;
     }
     current_thread->state = ENDED;
+
+    DEBUG_MODE ? printf("exit request tid: %d\n\n", current_thread->tid) : 0;
+
     return TSL_SUCCESS;
 }
 
@@ -316,9 +340,12 @@ int tsl_cancel(int tid) {
         if (taget_thread == NULL) {
             printf(ANSI_COLOR_RED "ERROR: could not find thread with id: %d. [int tsl_cancel(int tid)]\n" ANSI_COLOR_RESET, tid);
             return TSL_ERROR;
+        } else {
+            DEBUG_MODE ? print_tcb(taget_thread) : 0;
         }
     } else {
         taget_thread = main_tcb;
+        DEBUG_MODE ? printf("Main selected for cancel\n") : 0;
     }
 
     // free context stack
@@ -469,4 +496,26 @@ TCB* select_next_thread() {
     } else if (scheduling_algo == 2) {
         //dequeue random
     }
+}
+
+void print_ucontext(ucontext_t *context) {
+    printf("Context Information:\n");
+    printf("\tuc_stack: {ss_sp: %p, ss_flags: %d, ss_size: %zu}\n",
+           (void *)context->uc_stack.ss_sp, context->uc_stack.ss_flags,
+           context->uc_stack.ss_size);
+    printf("\tuc_mcontext: %p\n\n", (void *)&context->uc_mcontext);
+}
+
+
+void print_tcb(TCB* tcb) {
+    if (tcb == NULL) {
+        printf(ANSI_COLOR_RED "ERROR: unable to printf tcb beacuse it is NULL\n\n" ANSI_COLOR_RESET);
+        exit(1);
+    }
+    printf("\n\n");
+    printf("tid: %d\n", tcb->tid);
+    printf("state: %s %d\n", tcb->state ? "RUNNING" : "READY", tcb->state);
+    print_ucontext(&tcb->context);
+    printf("\n\n");
+
 }
