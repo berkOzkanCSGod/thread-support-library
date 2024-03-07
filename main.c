@@ -14,15 +14,15 @@
 
 void donothing() {
     printf("in donothin\n");
+    sleep(2);
+    printf("in donothin\n");
 }
 
 int main() {
 
     tsl_init(1);
     tsl_create_thread(&donothing, NULL);
-
-    int tid = 69420;
-    // printf(ANSI_COLOR_YELLOW "WARNING: Could not find thread with id: %d to exit. [int tsl_join(int tid)]\n" ANSI_COLOR_RESET, tid);
+    printf("Holy shit it worked\n");
 
     return 0;
 }

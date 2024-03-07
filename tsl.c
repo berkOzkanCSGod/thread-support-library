@@ -3,6 +3,58 @@
 #endif /* __USE_GNU */ 
 
 #include "tsl.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <time.h>
+#include <signal.h>
+
+#define RUNNING 1
+#define READY 0
+#define ENDED -1
+
+#define QUEUE_ERROR -1
+#define QUEUE_SUCCESS 0
+
+#define MIN_ID 1000
+#define MAX_ID 9999
+
+#define ANSI_COLOR_RED      "\x1b[31m"
+#define ANSI_COLOR_RESET    "\x1b[0m"
+#define ANSI_COLOR_YELLOW   "\x1b[33m"
+
+typedef struct TCB TCB;
+typedef struct runqueue runqueue;
+
+// globals
+struct runqueue* Q;
+struct TCB* main_tcb;
+int scheduling_algo;
+
+//generates random id using rand
+int generateid();
+
+//-1: error
+//0: success
+int enqueue(runqueue* queue, TCB* tcb);
+
+//NULL: error
+//TCB*: success
+TCB* dequeue(runqueue* queue);
+
+void printq(runqueue* queue);
+
+//return TCB* by finding by id
+TCB* find_thread_by_id(int tid);
+
+//return TCB* by finding thread->state == RUNNING
+TCB* find_running_thread();
+
+void print_stack_memory(const stack_t *stack);
+
+void stub (void (*tsf) (void*), void *targ);
+
+TCB* select_next_thread();
 
 
 typedef struct TCB {
@@ -18,11 +70,6 @@ typedef struct runqueue {
     int tail; //index
     int size;
 } runqueue;
-
-//globals
-struct runqueue* Q;
-struct TCB* main_tcb;
-
 
 int tsl_init(int salg) {
 
@@ -50,6 +97,8 @@ int tsl_init(int salg) {
 
     call_count = 1;
 
+    scheduling_algo = salg;
+
     printf("Successfully initialized tsl\n");
 
     return TSL_SUCCESS;
@@ -65,6 +114,7 @@ void tsl_quit(void) {
     tsl_cancel(TID_MAIN);
     main_tcb = NULL;
     printf("Terminated tsl\n");
+    exit(0);
 }
 
 int tsl_create_thread(void (*tsf)(void *), void *targ) {
@@ -142,8 +192,7 @@ int tsl_yield(int tid) {
 
     // caller state: RUNNING --> READY
         // need to get TCB with state RUNNING
-        // for now just represent it as a dequeue
-    current_tcb = dequeue(Q);
+    current_tcb = find_running_thread();
 
     if (current_tcb == NULL) {
         printf(ANSI_COLOR_RED "ERROR: dequeued item is NULL. [int tsl_yield(int tid)]\n" ANSI_COLOR_RESET);
@@ -164,9 +213,11 @@ int tsl_yield(int tid) {
     //selecting next thread to run
     if (tid > 0) {
         next_thread = find_thread_by_id(tid);
+        if (next_thread == NULL) {
+            return TSL_ERROR;
+        }
     } else if ( tid == TSL_ANY) {
-        // this should change based on the algo.
-        next_thread = dequeue(Q);
+        next_thread = select_next_thread();
     }
 
     if (next_thread == NULL) {
@@ -178,6 +229,9 @@ int tsl_yield(int tid) {
     setcontext(&next_thread->context);
     next_thread->state = RUNNING;
 
+
+
+    return next_thread->tid;
     /**
      * caller state: RUNNING --> READY +
      * caller TCB: added to Q +
@@ -378,7 +432,7 @@ int generateid() {
 //return TCB* by finding by id
 TCB* find_thread_by_id(int tid) {
     int index = 0;
-    TCB* current = Q->head;
+    TCB* current = Q->threads[Q->head];
     while(index < Q->size){
         if(current->tid == tid){
             return current;
@@ -392,7 +446,7 @@ TCB* find_thread_by_id(int tid) {
 //return TCB* by finding thread->state == RUNNING
 TCB* find_running_thread() {
     int index = 0;
-    TCB* current = Q->head;
+    TCB* current = Q->threads[Q->head];
     while(index < Q->size){
         if(current->state == RUNNING){
             return current;
@@ -401,4 +455,18 @@ TCB* find_running_thread() {
         current = Q->threads[index];
     }
     return NULL;
+}
+
+void stub (void (*tsf) (void*), void *targ) {
+    tsf(targ); 
+    tsl_exit(); 
+}
+
+TCB* select_next_thread() {
+    if (scheduling_algo == 1) {
+        //dequeue
+        return dequeue(Q);
+    } else if (scheduling_algo == 2) {
+        //dequeue random
+    }
 }
