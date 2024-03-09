@@ -247,8 +247,9 @@ int tsl_yield(int tid) {
     }
 
     // putting next thread onto CPU
-    setcontext(&next_thread->context);
     next_thread->state = RUNNING;
+    setcontext(&next_thread->context);
+    
 
 
 
@@ -314,7 +315,7 @@ int tsl_join(int tid) {
     }
 
     while(taget_thread->state != ENDED);
-
+    DEBUG_MODE ? printf("in tsl_join for tid: %d\n", tid) : 0;
     // free context stack
     free(taget_thread->context.uc_stack.ss_sp);
     // free TCB stack
