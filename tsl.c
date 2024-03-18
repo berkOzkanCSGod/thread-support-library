@@ -261,6 +261,11 @@ int tsl_yield(int tid) {
         printf("Selecting next thread to run\n");
         if (tid > 0) {
             next_thread = find_thread_by_id(tid);
+            printf("State of next thread: %d\n", next_thread->state);
+            if(next_thread->state == ENDED){
+                printf("ERROR: Thread with tid: %d has ended.\n", tid);
+                return TSL_ERROR;
+            }
             if (next_thread == NULL) {
                 printf("ERROR: No thread found with tid: %d\n", tid);
                 return TSL_ERROR;
@@ -323,18 +328,19 @@ int tsl_yield(int tid) {
         } else if ( tid == TSL_ANY) {
             next_thread = select_next_thread();
         }
-
+        printf("State of next thread: %d\n", next_thread->state);
+        if(next_thread->state == ENDED){
+            printf("ERROR: Thread with tid: %d has ended.\n", tid);
+            return TSL_ERROR;
+        }
         if (next_thread == NULL) {
             printf("ERROR: Could not select next thread.\n");
             return TSL_ERROR;
         }
-
         printf("Next thread to run id: %d\n", next_thread->tid);
-
         next_thread->state = RUNNING;
         printf("Next thread state set to RUNNING\nThe next thread is: \n");
         print_tcb(next_thread);
-
         setcontext(&next_thread->context);
     } else {
         printf("Thread resumed, changing state to RUNNING\n");
@@ -363,7 +369,7 @@ int tsl_exit() {
         }
     }
     if(ready_threads > 0){
-        tsl_yield(TSL_ANY);
+        tsl_yield(TSL_ANY); //THIS YIELDS TO THE NEXT THREAD BASED ON THE SCHEDULING ALGORITHM, CHANGED FROM TSL_ANY TO TID_MAIN TO YIELD TO MAIN THREAD
         return TSL_SUCCESS;
     } else {
         printf("No other threads to run, exiting\n");
