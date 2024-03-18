@@ -5,7 +5,6 @@
 
 void donothing() {
     printf("Holy shit it worked\n");
-    tsl_exit(); // This should be at the end of your thread function
 }
 
 int main() {

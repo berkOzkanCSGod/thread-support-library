@@ -140,6 +140,13 @@ void tsl_quit(void) {
     exit(0);
 }
 
+void stub (void (*tsf) (void*), void *targ) {
+    DEBUG_MODE ? printf("In stub\n") : 0;
+    tsf(targ);
+    DEBUG_MODE ? printf("End of stub\n") : 0;
+    tsl_exit();
+}
+
 int tsl_create_thread(void (*tsf)(void *), void *targ) {
     
     TCB* new_tcb;
@@ -164,11 +171,9 @@ int tsl_create_thread(void (*tsf)(void *), void *targ) {
 
     //get current thread's context
     getcontext(&current_context);
-
     DEBUG_MODE ? print_ucontext(&current_context) : 0;
-
     new_tcb->context = current_context;
-    new_tcb->context.uc_mcontext.gregs[REG_EIP] = (unsigned long)tsf; 
+    new_tcb->context.uc_mcontext.gregs[REG_EIP] = (unsigned long)stub; 
     new_tcb->context.uc_stack.ss_sp = malloc(TSL_STACKSIZE);
     new_tcb->context.uc_stack.ss_size = TSL_STACKSIZE;
     new_tcb->context.uc_stack.ss_flags = 0;
