@@ -43,6 +43,7 @@ int enqueue(runqueue* queue, TCB* tcb);
 //NULL: error
 //TCB*: success
 TCB* dequeue(runqueue* queue);
+int dequeue_by_tid(runqueue *queue, int tid);
 
 void printq(runqueue* queue);
 
@@ -51,6 +52,7 @@ TCB* find_thread_by_id(int tid);
 
 //return TCB* by finding thread->state == RUNNING
 TCB* find_running_thread();
+TCB* find_ended_thread();
 
 void print_stack_memory(const stack_t *stack);
 
@@ -204,90 +206,124 @@ int tsl_create_thread(void (*tsf)(void *), void *targ) {
 }
 
 int tsl_yield(int tid) {
-    // need to add error checking later //
-
-    // A thread will call tsl yield() to give the cpu to some other thread.
+    printf("tsl_yield called with tid: %d\n", tid);
 
     TCB* current_tcb;
     TCB* next_thread;
-
-    // caller state: RUNNING --> READY
-        // need to get TCB with state RUNNING
+    printf("Before finding running thread:\n");
+    printq(Q);
     current_tcb = find_running_thread();
-
     if (current_tcb == NULL) {
-        printf(ANSI_COLOR_RED "ERROR: dequeued item is NULL. [int tsl_yield(int tid)]\n" ANSI_COLOR_RESET);
-        return TSL_ERROR;
-    }
-
-    current_tcb->state = READY;
-
-    //adding current thread back into queue
-    if (enqueue(Q, current_tcb) == -1) {
-        printf(ANSI_COLOR_RED "ERROR: could not enqueue item. [int tsl_yield(int tid)]\n" ANSI_COLOR_RESET);
-        return TSL_ERROR;
-    }
-
-    //save current context
-    getcontext(&current_tcb->context);
-
-    //selecting next thread to run
-    if (tid > 0) {
-        next_thread = find_thread_by_id(tid);
-        if (next_thread == NULL) {
+        printf("No running thread found.\n");
+        current_tcb = find_ended_thread();
+        if(current_tcb == NULL) {
+            printf("No ended thread found.\n");
             return TSL_ERROR;
         }
-    } else if ( tid == TSL_ANY) {
-        next_thread = select_next_thread();
     }
+    if(current_tcb->state == ENDED){
+        printf("Current thread ended\n");
+        printf("Before current thread dequeued\n");
+        printq(Q);
+        // Dequeue the current thread
+        if (dequeue_by_tid(Q, current_tcb->tid) == -1) {
+            printf("ERROR: Could not dequeue current thread.\n");
+            return TSL_ERROR;
+        }
+        printf("After current thread dequeued\n");
+        printq(Q);
+        if (enqueue(Q, current_tcb) == -1) {
+            printf("ERROR: Could not enqueue current thread.\n");
+            return TSL_ERROR;
+        }
+        printf("Current thread enqueued\n");
+        printf("After current thread is set to ENDED and enqueued\n");
+        printq(Q);
+        printf("Selecting next thread to run\n");
+        if (tid > 0) {
+            next_thread = find_thread_by_id(tid);
+            if (next_thread == NULL) {
+                printf("ERROR: No thread found with tid: %d\n", tid);
+                return TSL_ERROR;
+            }
+        } else if ( tid == TSL_ANY) {
+            next_thread = select_next_thread();
+        }
 
-    if (next_thread == NULL) {
-        printf(ANSI_COLOR_RED "ERROR: could not dequeue item. [int tsl_yield(int tid)]\n" ANSI_COLOR_RESET);
+        if (next_thread == NULL) {
+            printf("ERROR: Could not select next thread.\n");
+            return TSL_ERROR;
+        }
+
+        printf("Next thread to run id: %d\n", next_thread->tid);
+
+        next_thread->state = RUNNING;
+        printf("Next thread state set to RUNNING\nThe next thread is: \n");
+        print_tcb(next_thread);
+
+        setcontext(&next_thread->context);
+        printf("Returning from tsl_yield with tid: %d\n", current_tcb->tid);
+        return current_tcb->tid;
+    }
+    printf("Current running thread id: %d\n", current_tcb->tid);
+    printf("Before current thread dequeued\n");
+    printq(Q);
+    // Dequeue the current thread
+    if (dequeue_by_tid(Q, current_tcb->tid) == -1) {
+        printf("ERROR: Could not dequeue current thread.\n");
         return TSL_ERROR;
     }
+    printf("After current thread dequeued\n");
+    printq(Q);
+    current_tcb->state = READY;
+    printf("Current thread state set to READY\n");
 
-    // putting next thread onto CPU
-    next_thread->state = RUNNING;
-    setcontext(&next_thread->context);
-    
+    if (enqueue(Q, current_tcb) == -1) {
+        printf("ERROR: Could not enqueue current thread.\n");
+        return TSL_ERROR;
+    }
+    printf("Current thread enqueued\n");
+    printf("After current thread is set to READY and enqueued\n");
+    printq(Q);
 
+    if (getcontext(&current_tcb->context) == -1) {
+        printf("ERROR: Could not get context.\n");
+        return TSL_ERROR;
+    }
+    printf("Context of current thread saved\n");
 
+    if (current_tcb->state == READY) {
+        printf("Selecting next thread to run\n");
 
-    return next_thread->tid;
-    /**
-     * caller state: RUNNING --> READY +
-     * caller TCB: added to Q +
-     * current context saved w/ getcontext() +
-     * 
-     * if tid > 0 +
-     *  run this thread 
-     * else if tid == TSL_ANY +
-     *  run from schedule 
-     * 
-     * running thread: setcontext() +
-     * 
-     * 
-    * /
+        if (tid > 0) {
+            next_thread = find_thread_by_id(tid);
+            if (next_thread == NULL) {
+                printf("ERROR: No thread found with tid: %d\n", tid);
+                return TSL_ERROR;
+            }
+        } else if ( tid == TSL_ANY) {
+            next_thread = select_next_thread();
+        }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
-    // NOT DONE:
-        /*
-        * Handling getcontext() Return:
-        * - When a thread X calls getcontext(), it saves X's context and returns control.
-        *   - This is the first return; X continues until it yields to another thread Y.
-        * - When another thread (Y or Z) yields back to X using setcontext(), X resumes execution.
-        *   - This is the second return.
-        */
+        if (next_thread == NULL) {
+            printf("ERROR: Could not select next thread.\n");
+            return TSL_ERROR;
+        }
 
-        /*
-        * Actions to Take in Each Case:
-        * - First Return:
-        *   - Change X's state to READY and perform a context switch to another thread using setcontext().
-        * - Second Return:
-        *   - Change X's state to RUNNING if needed.
-        */
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
+        printf("Next thread to run id: %d\n", next_thread->tid);
 
+        next_thread->state = RUNNING;
+        printf("Next thread state set to RUNNING\nThe next thread is: \n");
+        print_tcb(next_thread);
+
+        setcontext(&next_thread->context);
+    } else {
+        printf("Thread resumed, changing state to RUNNING\n");
+        current_tcb->state = RUNNING;
+    }
+
+    printf("Returning from tsl_yield with tid: %d\n", current_tcb->tid);
+    return current_tcb->tid;
 }
 
 int tsl_exit() {
@@ -301,7 +337,9 @@ int tsl_exit() {
     current_thread->state = ENDED;
 
     DEBUG_MODE ? printf("exit request tid: %d\n\n", current_thread->tid) : 0;
+    print_tcb(current_thread);
 
+    tsl_yield(TSL_ANY);
     return TSL_SUCCESS;
 }
 
@@ -313,9 +351,9 @@ int tsl_join(int tid) {
         printf(ANSI_COLOR_YELLOW "WARNING: Could not find thread with id: %d to exit. [int tsl_join(int tid)]\n" ANSI_COLOR_RESET, tid);
         return TSL_ERROR;
     }
-
-    while(taget_thread->state != ENDED);
     DEBUG_MODE ? printf("in tsl_join for tid: %d\n", tid) : 0;
+    while(taget_thread->state != ENDED);
+    
     // free context stack
     free(taget_thread->context.uc_stack.ss_sp);
     // free TCB stack
@@ -438,12 +476,41 @@ TCB* dequeue(runqueue* queue) {
 
     return NULL;
 }
+int dequeue_by_tid(runqueue *queue, int tid) {
+    int i, index = -1;
 
+    // Find the TCB with the given tid
+    for (i = 0; i < queue->size; i++) {
+        int currentIndex = (queue->head + i) % TSL_MAXTHREADS;
+        if (queue->threads[currentIndex]->tid == tid) {
+            index = currentIndex;
+            break;
+        }
+    }
+
+    // If not found, return error
+    if (index == -1) {
+        return -1;
+    }
+
+    // Shift all elements after the found TCB to fill the gap
+    for (i = index; i != queue->tail; i = (i + 1) % TSL_MAXTHREADS) {
+        queue->threads[i] = queue->threads[(i + 1) % TSL_MAXTHREADS];
+    }
+
+    // Decrease the tail index
+        queue->tail = (queue->tail - 1 + TSL_MAXTHREADS) % TSL_MAXTHREADS;
+
+    // Decrease the size of the queue
+    queue->size--;
+
+    return 0;  // Success
+}
 void printq(runqueue* queue) {
     if (queue->size > 0) {
         for (int i = 0; i < queue->tail-1; i++) {
             if (i != queue->tail && queue->threads[i] != NULL) {
-                printf("%d_", queue->threads[i]->tid);
+                printf("%d, ", queue->threads[i]->tid);
             }
         }
         printf("%d\n", queue->threads[queue->tail-1]->tid);
@@ -476,6 +543,7 @@ TCB* find_running_thread() {
     int index = 0;
     TCB* current = Q->threads[Q->head];
     while(index < Q->size){
+        print_tcb(current);
         if(current->state == RUNNING){
             return current;
         }
@@ -484,16 +552,27 @@ TCB* find_running_thread() {
     }
     return NULL;
 }
-
-void stub (void (*tsf) (void*), void *targ) {
-    tsf(targ); 
-    tsl_exit(); 
+TCB* find_ended_thread() {
+    int index = 0;
+    TCB* current = Q->threads[Q->head];
+    while(index < Q->size){
+        print_tcb(current);
+        if(current->state == ENDED){
+            return current;
+        }
+        index++;
+        current = Q->threads[index];
+    }
+    return NULL;
 }
 
 TCB* select_next_thread() {
     if (scheduling_algo == 1) {
         //dequeue
-        return dequeue(Q);
+        TCB *next_thread = dequeue(Q);
+        printf("dequeue\n");
+        print_tcb(next_thread);
+        return next_thread;
     } else if (scheduling_algo == 2) {
         //dequeue random
     }
