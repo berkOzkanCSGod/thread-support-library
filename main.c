@@ -13,6 +13,7 @@ int main() {
     
     // Create a new thread
     int result = tsl_create_thread(&donothing, NULL);
+    tsl_print_queue();
     if (result == TSL_ERROR) {
         printf("tsl_create_thread(&donothing, NULL); FAIL\n");
     } else {
@@ -27,7 +28,8 @@ int main() {
 
     // Wait for the new thread to complete
     tsl_join(result);
+    tsl_print_queue();
     printf("Done.\n");
-
+    tsl_exit();
     return 0;
 }

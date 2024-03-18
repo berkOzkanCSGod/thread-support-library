@@ -33,5 +33,6 @@ int tsl_join(int tid);
 int tsl_cancel(int tid);
 int tsl_gettid();
 void tsl_quit(void);
+void tsl_print_queue(void);
 
 #endif

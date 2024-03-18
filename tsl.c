@@ -337,10 +337,38 @@ int tsl_exit() {
     current_thread->state = ENDED;
 
     DEBUG_MODE ? printf("exit request tid: %d\n\n", current_thread->tid) : 0;
-    print_tcb(current_thread);
-
-    tsl_yield(TSL_ANY);
-    return TSL_SUCCESS;
+    int ready_threads = 0;
+    for (int i = 0; i < Q->size; i++) {
+        if (Q->threads[i]->state == READY) {
+            ready_threads++;
+        }
+    }
+    if(ready_threads > 0){
+        tsl_yield(TSL_ANY);
+        return TSL_SUCCESS;
+    } else {
+        printf("No other threads to run, exiting\n");
+        for(int i = 0; i < Q->size; i++){
+            if(Q->threads[i]->tid == current_thread->tid){
+                if (dequeue_by_tid(Q, current_thread->tid) == -1) {
+                    printf(ANSI_COLOR_RED "ERROR: Could not dequeue thread with id: %d. [int tsl_join(int tid)]\n" ANSI_COLOR_RESET, current_thread->tid);
+                    return TSL_ERROR;
+                }
+            }
+        }
+        printf("Thread with id: %d has been dequeued\n", current_thread->tid);
+        tsl_print_queue();
+        exit(TSL_SUCCESS);
+    }
+}
+void tsl_print_queue(void) {
+    printf("Queue Information:\n");
+    printf("\tsize: %d\n", Q->size);
+    printf("\thead: %d\n", Q->head);
+    printf("\ttail: %d\n", Q->tail);
+    printf("\tthreads: ");
+    printq(Q);
+    printf("\n");
 }
 
 int tsl_join(int tid) {
@@ -354,16 +382,21 @@ int tsl_join(int tid) {
     DEBUG_MODE ? printf("in tsl_join for tid: %d\n", tid) : 0;
     while(taget_thread->state != ENDED);
     
+    for(int i = 0; i < Q->size; i++){
+        if(Q->threads[i]->tid == tid){
+            if (dequeue_by_tid(Q, tid) == -1) {
+                printf(ANSI_COLOR_RED "ERROR: Could not dequeue thread with id: %d. [int tsl_join(int tid)]\n" ANSI_COLOR_RESET, tid);
+                return TSL_ERROR;
+            }
+        }
+    }
+    printf("Thread with id: %d has been dequeued\n", tid);
     // free context stack
     free(taget_thread->context.uc_stack.ss_sp);
     // free TCB stack
     free(taget_thread->stack);
     // free TCB
     free(taget_thread);
-
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
-    //maybe need to remove from queue
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
 
     taget_thread = NULL;
     
@@ -386,7 +419,16 @@ int tsl_cancel(int tid) {
         taget_thread = main_tcb;
         DEBUG_MODE ? printf("Main selected for cancel\n") : 0;
     }
-
+    
+    for(int i = 0; i < Q->size; i++){
+        if(Q->threads[i]->tid == tid){
+            if (dequeue_by_tid(Q, tid) == -1) {
+                printf(ANSI_COLOR_RED "ERROR: Could not dequeue thread with id: %d. [int tsl_join(int tid)]\n" ANSI_COLOR_RESET, tid);
+                return TSL_ERROR;
+            }
+        }
+    }
+    printf("Thread with id: %d has been dequeued\n", tid);
     // free context stack
     free(taget_thread->context.uc_stack.ss_sp);
     // free TCB stack
@@ -394,11 +436,9 @@ int tsl_cancel(int tid) {
     // free TCB
     free(taget_thread);
 
-    //maybe need to remove from queue
     taget_thread = NULL;
 
     return tid;
-
 }
 
 int tsl_gettid() {
@@ -543,7 +583,6 @@ TCB* find_running_thread() {
     int index = 0;
     TCB* current = Q->threads[Q->head];
     while(index < Q->size){
-        print_tcb(current);
         if(current->state == RUNNING){
             return current;
         }
@@ -556,7 +595,6 @@ TCB* find_ended_thread() {
     int index = 0;
     TCB* current = Q->threads[Q->head];
     while(index < Q->size){
-        print_tcb(current);
         if(current->state == ENDED){
             return current;
         }
@@ -593,7 +631,6 @@ void print_ucontext(ucontext_t *context) {
            context->uc_stack.ss_size);
     printf("\tuc_mcontext: %p\n\n", (void *)&context->uc_mcontext);
 }
-
 
 void print_tcb(TCB* tcb) {
     if (tcb == NULL) {
