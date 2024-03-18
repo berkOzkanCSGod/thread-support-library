@@ -605,23 +605,23 @@ TCB* find_ended_thread() {
 }
 
 TCB* select_next_thread() {
+    TCB *next_thread;
     if (scheduling_algo == 1) {
         //dequeue
-        TCB *next_thread = Q->threads[0];
+        next_thread = Q->threads[0];
         printf("SelectNextThread used FCFS: Selected thread:\n");
         print_tcb(next_thread);
-        return next_thread;
     } else if (scheduling_algo == 2) {
         srand(time(NULL));
         int index = rand() % TSL_MAXTHREADS;
         while(Q->threads[index]->state != READY){
             index = rand() % TSL_MAXTHREADS;
         }
-        TCB *next_thread = Q->threads[index];
+        next_thread = Q->threads[index];
         printf("SelectNextThread used Random Selection: Selected thread:\n");
         print_tcb(next_thread);
-        return next_thread;
     }
+    return next_thread;
 }
 
 void print_ucontext(ucontext_t *context) {
