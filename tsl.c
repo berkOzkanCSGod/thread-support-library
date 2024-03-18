@@ -93,13 +93,24 @@ int tsl_init(int salg) {
 
     if (Q == NULL) {
         printf(ANSI_COLOR_RED "ERROR: Queue 'Q' did not initialize. Reason: unknown [int tsl_init(int salg)]\n" ANSI_COLOR_RESET);
+        return TSL_ERROR; // return error if malloc fails
     }
 
     main_tcb = (TCB*)malloc(sizeof(TCB));
+
+    if (main_tcb == NULL) {
+        printf(ANSI_COLOR_RED "ERROR: TCB 'main_tcb' did not initialize. Reason: unknown [int tsl_init(int salg)]\n" ANSI_COLOR_RESET);
+        free(Q); // free previously allocated memory
+        return TSL_ERROR; // return error if malloc fails
+    }
+
     main_tcb->tid = TID_MAIN;
     main_tcb->state = RUNNING;
     if (enqueue(Q, main_tcb) == -1){
         printf(ANSI_COLOR_RED "ERROR: could not enqueue. [int tsl_init(int salg)]\n" ANSI_COLOR_RESET);
+        free(Q); // free previously allocated memory
+        free(main_tcb); // free previously allocated memory
+        return TSL_ERROR; // return error if enqueue fails
     }    
 
     DEBUG_MODE ? printq(Q) : 0;
@@ -115,12 +126,15 @@ int tsl_init(int salg) {
 
 void tsl_quit(void) {
     DEBUG_MODE ? printf("Terminating tsl...\n") : 0;
-    while (Q->size > 0) {
-        tsl_cancel(dequeue(Q)->tid);
+    for(int i = 0; i < Q->size; i++){
+        TCB* current_thread = Q->threads[i];
+        if (tsl_cancel(current_thread->tid) == -1) {
+            printf(ANSI_COLOR_RED "ERROR: Could not dequeue thread with id: %d. [int tsl_join(int tid)]\n" ANSI_COLOR_RESET, current_thread->tid);
+            return;
+        }
     }
     free(Q);
     Q = NULL;
-    tsl_cancel(TID_MAIN);
     main_tcb = NULL;
     DEBUG_MODE ? printf("Terminated tsl\n") : 0;
     exit(0);

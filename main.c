@@ -30,6 +30,6 @@ int main() {
     tsl_join(result);
     tsl_print_queue();
     printf("Done.\n");
-    tsl_exit();
+    tsl_quit();
     return 0;
 }
