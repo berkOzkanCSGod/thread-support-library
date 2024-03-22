@@ -16,32 +16,23 @@ int main() {
     
     // Create a new thread
     int thread1 = tsl_create_thread(&donothing1, NULL);
-    tsl_print_queue();
-    if (thread1 == TSL_ERROR) {
-        printf("tsl_create_thread(&donothing1, NULL); FAIL\n");
-    } else {
-        printf("tsl_create_thread(&donothing1, NULL); SUCCESS\n");
-        printf("tid: %d\n", thread1);
-        printf("Running thread: %d\n", tsl_gettid());
-    }
     int thread2 = tsl_create_thread(&donothing2, NULL);
-    tsl_print_queue();
-    if (thread2 == TSL_ERROR) {
-        printf("tsl_create_thread(&donothing2, NULL); FAIL\n");
-    } else {
-        printf("tsl_create_thread(&donothing2, NULL); SUCCESS\n");
-        printf("tid: %d\n", thread1);
-        printf("Running thread: %d\n", tsl_gettid());
+
+    if (thread2 == TSL_ERROR || thread1 == TSL_ERROR) {
+        printf("tsl_create_thread FAIL\n");
     }
     
     // Let the main thread yield to the new thread
-    int tid1 = tsl_yield(thread1);
-    tsl_join(thread1);
     int tid2 = tsl_yield(thread2);
-    tsl_join(thread2);
+    int tid1 = tsl_yield(thread1);
 
-    tsl_print_queue();
-    printf("Done.\n");
+    tsl_join(thread2);
+    tsl_join(thread1);
+
+
+    // tsl_print_queue();
+
+
     tsl_quit();
     return 0;
 }
