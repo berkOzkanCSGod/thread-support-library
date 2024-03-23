@@ -38,16 +38,19 @@ int main() {
     int thread1 = tsl_create_thread(&donothing1, NULL);
     int thread2 = tsl_create_thread(&donothing2, NULL);
     int thread3 = tsl_create_thread(&factorial, 5);
+    int thread4 = tsl_create_thread(&fibonacci, 10);
 
-    if (thread2 == TSL_ERROR || thread1 == TSL_ERROR || thread3 == TSL_ERROR) {
+    if (thread2 == TSL_ERROR || thread1 == TSL_ERROR || thread3 == TSL_ERROR || thread4 == TSL_ERROR) {
         printf("tsl_create_thread FAIL\n");
     }
     
     // Let the main thread yield to the new thread
+    int tid4 = tsl_yield(thread4);
     int tid3 = tsl_yield(thread3);
     int tid2 = tsl_yield(thread2);
     int tid1 = tsl_yield(thread1);
 
+    tsl_join(thread4);
     tsl_join(thread3);
     tsl_join(thread2);
     tsl_join(thread1);
