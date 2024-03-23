@@ -4,11 +4,31 @@
 #include <stdlib.h> // for malloc
 
 void donothing1() {
-    printf("Holy shit it worked\n");
+    printf("donothing1 is running...\n");
 }
 
 void donothing2() {
-    printf("Holy shit it worked PART 2\n");
+    printf("donothing2 is running...\n");
+}
+
+void factorial(int num) {
+    printf("Factorial is running...\n");
+    long long fact = 1;
+    for(int i = 2; i <= num; i++) {
+        fact *= i;
+    }
+    printf("Factorial of %d is %lld\n", num, fact);
+}
+
+void fibonacci(int n) {
+    printf("Fibonacci is running...\n");
+    long long fib[n+1];
+    fib[0] = 0;
+    fib[1] = 1;
+    for(int i = 2; i <= n; i++) {
+        fib[i] = fib[i-1] + fib[i-2];
+    }
+    printf("Fibonacci number %d is %lld\n", n, fib[n]);
 }
 
 int main() {
@@ -17,22 +37,22 @@ int main() {
     // Create a new thread
     int thread1 = tsl_create_thread(&donothing1, NULL);
     int thread2 = tsl_create_thread(&donothing2, NULL);
+    int thread3 = tsl_create_thread(&factorial, 5);
 
-    if (thread2 == TSL_ERROR || thread1 == TSL_ERROR) {
+    if (thread2 == TSL_ERROR || thread1 == TSL_ERROR || thread3 == TSL_ERROR) {
         printf("tsl_create_thread FAIL\n");
     }
     
     // Let the main thread yield to the new thread
+    int tid3 = tsl_yield(thread3);
     int tid2 = tsl_yield(thread2);
     int tid1 = tsl_yield(thread1);
 
+    tsl_join(thread3);
     tsl_join(thread2);
     tsl_join(thread1);
 
-
-    // tsl_print_queue();
-
-
+    printf("Main thread is exiting...\n");
     tsl_quit();
     return 0;
 }
