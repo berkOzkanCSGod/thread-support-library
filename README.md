@@ -1,5 +1,0 @@
-22001293 - 22101734 - 22304060
-
-Mert Fidan - 22101734
-Berk Özkan - 22001293
-Reda Lahlou Kassi - 22304060
