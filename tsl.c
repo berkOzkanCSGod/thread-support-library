@@ -357,7 +357,7 @@ int tsl_exit() {
         }
     }
     if(ready_threads > 0){
-        tsl_yield(TID_MAIN); //THIS YIELDS TO THE NEXT THREAD BASED ON THE SCHEDULING ALGORITHM, CHANGED FROM TSL_ANY TO TID_MAIN TO YIELD TO MAIN THREAD
+        tsl_yield(TSL_ANY); //THIS YIELDS TO THE NEXT THREAD BASED ON THE SCHEDULING ALGORITHM, CHANGED FROM TSL_ANY TO TID_MAIN TO YIELD TO MAIN THREAD
         return TSL_SUCCESS;
     } else {
         printf("No other threads to run, exiting\n");
