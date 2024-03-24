@@ -46,9 +46,6 @@ int main() {
     
     // Let the main thread yield to the new thread
     int tid4 = tsl_yield(thread4);
-    int tid3 = tsl_yield(thread3);
-    int tid2 = tsl_yield(thread2);
-    int tid1 = tsl_yield(thread1);
 
     tsl_join(thread4);
     tsl_join(thread3);
