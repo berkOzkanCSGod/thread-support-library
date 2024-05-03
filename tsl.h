@@ -11,8 +11,6 @@
 
 #include <ucontext.h>
 
-
-
 #define TSL_STACKSIZE 1024 * 32 // 32 kB
 #define TSL_MAXTHREADS 256
 
@@ -25,8 +23,24 @@
 #define ALG_FCFS 1
 #define ALG_RANDOM 2
 
+typedef struct{
+    int tid; //thread id
+    unsigned int state; // state of thread
+    ucontext_t context; //pointer to context
+    char* stack; //pointer to stack
+} TCB;
 
+typedef struct {
+    TCB* threads[TSL_MAXTHREADS];
+    int head; //index
+    int tail; //index
+    int size;
+} runqueue;
 
+// globals
+extern runqueue* Q;
+extern TCB* main_tcb;
+extern int scheduling_algo;
 
 //init tsl_init
 int tsl_init(int salg);

@@ -1,11 +1,5 @@
-#ifndef __USE_GNU //added so that gcc uses gnu ucontext.c
-#define __USE_GNU
-#endif /* __USE_GNU */ 
-
 #include "tsl.h"
-#include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
 #include <time.h>
 #include <signal.h>
 
@@ -25,12 +19,8 @@
 
 #define DEBUG_MODE 1
 
-typedef struct TCB TCB;
-typedef struct runqueue runqueue;
-
-// globals
-struct runqueue* Q;
-struct TCB* main_tcb;
+runqueue* Q;
+TCB* main_tcb;
 int scheduling_algo;
 
 //generates random id using rand
@@ -63,20 +53,6 @@ TCB* select_next_thread();
 void print_ucontext(ucontext_t *context);
 
 void print_tcb(TCB* tcb);
-
-typedef struct TCB {
-    int tid; //thread id
-    unsigned int state; // state of thread
-    ucontext_t context; //pointer to context
-    char* stack; //pointer to stack
-} TCB;
-
-typedef struct runqueue {
-    TCB* threads[TSL_MAXTHREADS];
-    int head; //index
-    int tail; //index
-    int size;
-} runqueue;
 
 int tsl_init(int salg) {
 
