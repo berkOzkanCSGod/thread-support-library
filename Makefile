@@ -1,18 +1,36 @@
-build: tsl.o lib main.o main
+
+CC	:= gcc
+CFLAGS := -g -Wall
+
+TARGETS :=  libtsl.a  app get main
+
+all: $(TARGETS)
+
+TSL_SRC :=  tsl.c
+TSL_OBJS := $(TSL_SRC:.c=.o)
+
+libtsl.a: $(TSL_OBJS)
+	ar rcs $@ $(TSL_OBJS)
+
+TSL_LIB :=  -L . -l tsl
+
+main.o: main.c tsl.h
+	gcc -c $(CFLAGS) -m32 -o $@ main.c
+
 tsl.o: tsl.c tsl.h
-	gcc -m32 -D_GNU_SOURCE -c -nostartfiles tsl.c -o tsl.o
+	gcc -c $(CFLAGS) -m32 -o $@ tsl.c
 
-lib: tsl.o
-	ar rcs libtsl.a tsl.o
+app.o: app.c  tsl.h
+	gcc -c $(CFLAGS) -m32  -o $@ app.c
 
-main.o: main.c
-	gcc -m32 -D_GNU_SOURCE -c -nostartfiles main.c -o main.o -L. -ltsl
+main: main.o libtsl.a
+	gcc $(CFLAGS) -m32  -o $@ main.o  $(TSL_LIB)	
 
-main: tsl.o main.o
-	gcc -m32 tsl.o main.o -o main
-	rm tsl.o main.o
-	clear
-	
+app: app.o libtsl.a
+	gcc $(CFLAGS) -m32  -o $@ app.o  $(TSL_LIB)
+
+get: get.c
+	gcc $(CFLAGS) -m32 -o $@ $<
+
 clean:
-	rm -f *.o *.a main
-	clear
+	rm -rf core  *.o $(TARGETS)

@@ -1,6 +1,10 @@
 #ifndef TSL_H
 #define TSL_H
 
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #ifndef __USE_GNU //added so that gcc uses gnu ucontext.c
 #define __USE_GNU
 #endif /* __USE_GNU */ 

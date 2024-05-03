@@ -23,7 +23,7 @@
 #define ANSI_COLOR_RESET    "\x1b[0m"
 #define ANSI_COLOR_YELLOW   "\x1b[33m"
 
-#define DEBUG_MODE 0
+#define DEBUG_MODE 1
 
 typedef struct TCB TCB;
 typedef struct runqueue runqueue;
@@ -397,8 +397,9 @@ int tsl_join(int tid) {
         return TSL_ERROR;
     }
 
-    while(taget_thread->state != ENDED)
-        ;
+    while(taget_thread->state != ENDED){
+        tsl_yield(TSL_ANY);
+    }
     
     for(int i = 0; i < Q->size; i++){
         if(Q->threads[i]->tid == tid){
